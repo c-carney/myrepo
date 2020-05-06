@@ -100,15 +100,6 @@ choice.sector <- as.list(all_sid$sector)
 choice.sector<-unique(choice.sector)
 choice.sector
 
-names(choice.sector) <- all_sid$sector
-choice.sector
-
-
-sector<-unique(all_sid$sector)
-sector
-choice.sector <- as.list(sector)
-names(choice.sector) <- sector
-
 choice.sector_v2 <- as.list(sector)
 names(choice.sector_v2) <- sector
 
