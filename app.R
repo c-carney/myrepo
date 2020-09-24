@@ -13,209 +13,18 @@ library(tidyverse)
 library(curl)
 library(RCurl)
 library(readODS)
+library(plotly)
+library(scales)
 
-# setwd("C:/Users/c-carney/OneDrive - DFID/Documents/R/edu_dashboard")
+setwd("~/desktop/r/myrepo")
 
+all_sid<-read.csv("all_sid.csv")
 
 #################################################################################
 #                                 get data
 #################################################################################
 
 
-#sid18<-read_ods(URL(https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/854348/Data-Underlying-SID-Dec19rev.ods))
-
-# accessed https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/854348/Data-Underlying-SID-Dec19rev.ods
-# save as .csv
-sid17_18<-read.csv("Data-Underlying-SID-Dec19rev.csv")
-str(sid17_18$HeadlineMeasureofODA..thousands.)
-
-# accessed https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/695435/data-underlying-the-sid2017-revision-March.ods
-# save as csv
-sid09_16<-read.csv("data-underlying-the-SID2017-revision-March09-16.csv")
-
-str(sid09_16$NetODA..thousands.)
-
-#################################################################################
-#                                rename variables
-#################################################################################
-
-# for 17-18 data
-sid17_18$oda18<-as.numeric(sid17_18$HeadlineMeasureofODA..thousands.)
-str(sid17_18$oda18)
-sid17_18$sector<-as.factor(sid17_18$SIDsector)
-sid17_18$channel<-sid17_18$BilateralMultilateralBreakdown
-sid17_18$country<-sid17_18$RecipientCountryText
-sid17_18$region<-sid17_18$RegionText
-sid17_18$gov<-sid17_18$Cross.GovernmentFundSpendingAgency
-sid17_18$dac5<-sid17_18$BroadSectorCode.DAC5code.
-sid17_18$year<-sid17_18$Year
-sid17_18$ChannelParent<-(as.factor(sid17_18$ChannelParent))
-
-# for 09 - 16 data
-sid09_16$oda16<-as.numeric(as.character(sid09_16$NetODA..thousands.))
-str(sid09_16$oda16)
-
-sid09_16$sector<-as.factor(sid09_16$SIDsector)
-sid09_16$channel<-sid09_16$BilateralMultilateralBreakdown
-sid09_16$country<-sid09_16$RecipientCountryText
-sid09_16$region<-sid09_16$RegionText
-sid09_16$gov<-sid09_16$Cross.GovernmentFundSpendingAgency
-sid09_16$dac5<-sid09_16$BroadSectorCode.DAC5code.
-sid09_16$year<-sid09_16$Year
-sid09_16$AmountsExtended..thousands.<-(as.numeric(sid09_16$AmountsExtended..thousands.))
-sid09_16$AmountsReceived..thousands.<-(as.numeric(sid09_16$AmountsReceived..thousands.))
-
-summary(as.factor(sid09_16$SectorPurposeCode.CRScode.))
-
-
-
-
-# bring all Edu Oda SID together in one dataframe
-all_sid<-full_join(sid09_16, sid17_18)
-
-
-
-# combine the two oda columns to one             
-paste_noNA <- function(x,sep=", ") { # function to paste ignoring missing data
-  gsub(", " ,sep, toString(x[!is.na(x) & x!="" & x!="NA"] ) ) }
-sep=""
-
-all_sid$oda<-apply( all_sid[ , c(23,34) ] , 1 , paste_noNA , sep=sep)
-str(all_sid$oda)
-
-all_sid$oda <-(as.numeric(as.character(all_sid$oda)))
-summary(all_sid$oda)
-
-all_sid<- all_sid %>% replace_na(list(oda = 0))
-summary(all_sid$oda)
-
-##get all oda for edu
-
-
-
-# edu dashbaord
-
-all_sid$sector
-choice.sector <- as.list(all_sid$sector)
-choice.sector<-unique(choice.sector)
-choice.sector
-
-choice.sector_v2 <- as.list(sector)
-names(choice.sector_v2) <- sector
-
-
-extendingagency<-unique(all_sid$ExtendingAgency)
-extendingagency
-choice.agency <- as.list(extendingagency)
-names(choice.agency) <- extendingagency
-all_sid$sector<-as.factor(all_sid$sector)
-
-
-sidsector<- all_sid %>%  
-  select (Year, sector, ProjectTitle, ExtendingAgency, oda) %>% 
-  # filter( Year=="2018") %>% 
-  group_by(sector, Year) %>%  # group by
-  summarise(oda_year=((sum(oda))/1000))  %>% #  year total
-  na.omit 
-       sidsector$sector<-as.factor(sidsector$sector)
-       
-       
-       
-      summary(all_sid$ExtendingAgency)
-     
-                
-  all_sid <- all_sid %>% 
-    mutate(dept = recode(ExtendingAgency, "Colonial Pensions administered by DFID" = "Pensions",
-               "Department for Business, Energy & Industrial Strategy" = "BEIS",
-               "Department for Business, Energy and Industrial Strategy" = "BEIS",
-               "Department for Culture, Media and Sports" = "DCMS",
-               "Department for Digital, Culture, Media and Sports" = "DCMS",
-               "Department for Education" = "DfE",
-               "Department for Education " = "DfE",
-               "Department for Environment Food and Rural Affairs" ="DEFRA",
-               "Department for International Development" = "DFID",
-               "Department for Work and Pensions" = "DWP",
-               "Department of Health and Social Care" = "Depart of Health",
-               " Department of Health" = "Depart of Health",
-               "Department of Health" = "Depart of Health",
-               "Export Credit Guarantee Department" = "Export Credit",
-               "Foreign & Commonwealth Office" = "FCO",
-               "IMF Poverty Reduction and Growth Trust(PRGT)" = "IMF PRGT",
-               "Ministry of Defence" = "MoD",
-               "Miscellaneous" = "Misc." ,
-               "Non-DFID EC Attribution " = "Non-DFID EC",
-               "Non-DFID EC Attribution" = "Non-DFID EC",
-               "Scottish Government" = "Scottish Gov",
-               "Other In-Donor Refugee Costs" = "Other Refugee Costs",
-               "Welsh Assembly Government" = "Welsh Assembly Gov"))
-     
-  
-summary(all_sid$dept)
-
-extendingagency<-unique(all_sid$dept)
-extendingagency
-choice.agency <- as.list(extendingagency)
-
-
-
-extendingagency_s<-unique(all_sid$dept)
-extendingagency_s
-choice.agency_s <- as.list(extendingagency_s)
-
-
-summary(all_sid$dac5)
-all_sid$dac5<-as.factor(all_sid$dac5)
-all_sid <- all_sid %>% 
-  mutate(sub_sector = recode(dac5, "111" = "Unspecified",
-                             "112" = "Basic",
-                             "113" = "Secondary",
-                             "114" = "Post-Secondary"))
-                             
-                      summary(all_sid$sub_sector)
-
-                      
-                      subsector<-unique(all_sid$sub_sector)
-                     subsector<-c("Unspecified","Basic","Secondary","Post-Secondary")
-                      choice.subsector <- as.list(subsector)   
-                      
-                      choice.subsector_v2 <- as.list(subsector)              
-                      
-                      
-                      
-   ### make list for detailed categories                    
-                      
-                      summary(all_sid$SectorPurposeCode.CRScode.)
-                      
-all_sid$crs_sector<-as.factor(all_sid$SectorPurposeCode.CRScode.)
-summary(all_sid$crs_sector)
-all_sid <- all_sid %>% 
-    mutate(crs = recode(crs_sector, "11120"	=	"Facilities & training",
-  "11130"		= "Teacher training",
-"11182"	=	"Edu research",
-"11220"	= 	"Primary edu",
-"11240"	=	"Early childhood edu",
-"11250"		= "School feeding",
-"11320"	=	"Secondary edu",
-"11330"	=	"Vocational",
-"11420"	=	"Higher edu",
-"11430"		= "Advanced tech & managerial"))
-
-crslist<-c("Facilities & training","Teacher training","Edu research","Primary edu", "Early childhood edu",
-    "School feeding",	"Secondary edu",	"Vocational","Higher edu","Advanced tech & managerial")
-choice.crs <- as.list(crslist)     
-choice.crs
-                    
-
-### list of recipenet countries
-
-
-summary(all_sid$country)
-
-
-countrylist<-unique(all_sid$country)
-countrylist
-choice.country <- as.list(countrylist)
-names(choice.country) <- extendingagency
 #Our special graph theme
 theme_bespoke <- theme(panel.background = 
                          element_blank(),panel.border=element_blank(),panel.grid.major = 
@@ -228,144 +37,266 @@ theme_bespoke <- theme(panel.background =
                        plot.caption=element_text(size=8, hjust=0, margin=margin(t=5)))
 
 # Dashboard header for the title of the dashboard---- 
-header <- dashboardHeader(title="Education Indicators", titleWidth = 350)
+header <- dashboardHeader(title="UK ODA Spend", titleWidth = 350)
 
 # Sidebar content of the dashboard----
 sidebar <- dashboardSidebar(width=350, sidebarMenu(
-                              menuItem("All ODA Spend", tabName="ODA", icon=icon("list")), 
-                              menuItem("HMG Dept Spend", tabName="HMG", icon=icon("list"))
-                            ) # closes sidebarMenu
+  menuItem("Bilateral ODA sector trends", tabName="ODA", icon=icon("list")), 
+  menuItem("HMG Dept Spend", tabName="HMG", icon=icon("list")),
+  menuItem("Year overview", tabName="YEAR", icon=icon("list"))
+  
+) # closes sidebarMenu
 ) #closes dashobard side bar
 
 # Define UI for DIT Monitoring App ----
 ui <- dashboardPage(header,sidebar, dashboardBody(
-                      #  tags$style(type="text/css",
-                      #            ".shiny-output-error { visibility: hidden; }",
-                      #           ".shiny-output-error:before { visibility: hidden; }"),
+  #  tags$style(type="text/css",
+  #            ".shiny-output-error { visibility: hidden; }",
+  #           ".shiny-output-error:before { visibility: hidden; }"),
+  
+  tabItems(   
+    
+    # Tab One 
+    tabItem(tabName="ODA", h1("Bilateral ODA Trends"),
+            
+            # row with slider to select years          
+            fluidRow( 
+              sliderInput(inputId = "yr1", label="Years to evaluate",   value=c(2015,2019), min=2000, max=2020,sep="") #close sliderInput
+            ), # close fluid row
+            
+            br(), # break 
+            
+            # row with box to select sector and grah of sector                                
+            fluidRow( 
+              # box to select sector
+              box(width=3, height = "150px",solidHeader = T,title="Sectors",status="primary",
+                  selectInput("sec", "Select Sectors:",choices=choice.sector, multiple=TRUE,selected="Education") ),
+              # box for graph
+              splitLayout(box(plotlyOutput("plot1a")) ) # close slilt layout
+            ), # close previous fluid row
+            
+            br(), # break
+            # row with box for sector as % of oda
+            fluidRow( 
+              # box to select crs
+              box(width=3, height = "150px",solidHeader = T,title="CRS for education",status="primary",
+                  selectInput("sec_v2", "Select Sectors:",choices=choice.sector_v2, multiple=TRUE,selected="Education") ),
+              # box for graph   
+              splitLayout(box(plotlyOutput("plot1b") ) ), # close slilt layout
+              
+              splitLayout(box(plotlyOutput("plot1c"))) # close split layout
+              
+              
+              
+            ), # close previous fuid row
+            
+            br(), # break 
+            # row with box to select sub sector and grah of sector                                 
+            fluidRow(  
+              # select sub sector
+              box(width=3, height = "150px",solidHeader = T,title="Sub-sector for education",status="primary",
+                  selectInput("sub_sec", "Select sub-sector:",choices=choice.subsector, multiple=TRUE,selected="Basic")),
+              # box to add graph              
+              splitLayout(box(plotlyOutput("plot1d"))), # close split layout
+              
+            ), # close previous fuid row
+            
+            br(), # break 
+            # row with box to select crs and grah of sector
+            fluidRow( 
+              # box to select crs
+              box(width=3, height = "150px",solidHeader = T,title="CRS for education",status="primary",
+                  selectInput("crs", "Select CRS purpose code:", choices=choice.crs, multiple=TRUE,selected="Primary edu")),
+              # box for graph   
+              splitLayout(box(plotlyOutput("plot1e") ) ) # close slilt layout
+            ) # close previous fuid row
+            
+    ), # closes tab item
+    
+    # Tab Two
+    tabItem(tabName="HMG", h1("ODA Spend by HMG"),
+            
+            # row with slider to select years     
+            fluidRow( 
+              sliderInput(inputId = "yr2",label="Years to evaluate",   value=c(2015,2019), min=2000, max=2020, sep="") #close sliderInput
+            ), # close fluid row
+            
+            br(), # break 
+            
+            # row with boxes for sector, extending agencg and graph
+            fluidRow( 
+              # box to select sector and grah of sector
+              box(width=3, height = "150px",solidHeader = T,title="Sectors",status="primary",
+                  selectInput("sec_v2", "Select Sectors:", choices=choice.sector_v2,  multiple=FALSE, selected="Education") ), 
+              # box to select Extending Agency 
+              box(width=3, height = "150px",solidHeader = T,title="Extending Agency",status="primary",
+                  selectInput("ExtAg", "Select HMG Department:",choices=choice.agency_s,  multiple=TRUE, selected="DFID") ) ,
+              # box with graph
+              splitLayout( box(plotlyOutput("plot2a")) ) # close slilt layout
+            ), # close fluid row
+            
+            ####add box for agency#######################################################################fix
+            # row with box to select sub sector and grah of sub sector                
+            fluidRow(  
+              # box for sub sector
+              box(width=3, height = "150px",solidHeader = T,title="Sub-sector for education",status="primary",
+                  selectInput("sub_sec_v2", "Select sub-sector:",choices=choice.subsector_v2, multiple=TRUE,selected="Basic")),
+              # box with graph
+              splitLayout( box(plotlyOutput("plot2b")) ) # close splitlayout
+            ) # close previous fluid row
+            
+            
+    ), # closes tab item
+    
+    
+    # Tab Three
+    tabItem(tabName="YEAR", h1("Year overview"),
+            
+            # row with slider to select years          
+            fluidRow(
+              # row with box to select year                
+              # box for sub sector
+              box(width=3, height = "150px",solidHeader = T,title="Year to evaluate",status="primary",
+                  selectInput("yr3", "Select year:",choices=choice.year, multiple=FALSE,selected="2018"))
+            ), # close fluid row
+            
+            br(), # break 
+            
+            tableOutput("table1"), 
+            fluidRow(
+              #box(width=4, height = "250px",solidHeader = T,title="Total ODA",status="primary",
+               # tableOutput("table1")
+             # ),
+                box(width=4, height = "250px",solidHeader = T,title="Total Bilateral ODA",status="primary",
+                    tableOutput("table2")
+                ) #,
+            ), # close fluid row
+                
+                fluidRow(
+                  box(width=4, height = "250px",solidHeader = T,title="Total Multilateral ODA",status="primary",
+                      tableOutput("table3")
+                  ),
+                
+              box(width=4, height = "250px",solidHeader = T,title="Top Recipient Sector",status="primary",
+                  tableOutput("table4")
+              ),
+              box(width=4, height = "250px",solidHeader = T,title="Top Recipient Country",status="primary",
+                  tableOutput("table5")
+                  )
            
-tabItems(   
+              ), # close fluid row
 
-# Tab One 
-tabItem(tabName="ODA", h1("All ODA Spend"),
-        
-# row with slider to select years          
-fluidRow( 
- sliderInput(inputId = "yr1", label="Years to evaluate",   value=c(2009,2015), min=2000, max=2020,sep="") #close sliderInput
-), # close fluid row
           
-    br(), # break 
-
-# row with box to select sector and grah of sector                                
-fluidRow( 
-# box to select sector
-       box(width=3, height = "150px",solidHeader = T,title="Sectors",status="primary",
-       selectInput("sec", "Select Sectors:",choices=choice.sector, multiple=TRUE,selected="Education") ),
-# box for graph
-       splitLayout(box(plotlyOutput("plot1a")) ) # close slilt layout
-), # close previous fluid row
+            # row with box to select sector and grah of sector                                
+            fluidRow( 
+              # box for graph
+              splitLayout(box(plotlyOutput("plot3a")) ) # close slilt layout
+            ), # close previous fluid row
+            
+            br(), # break
+            
+            # row with box to select sub sector and grah of sector                                 
+            fluidRow(  
+              # box to select sector and grah of sector
+             # box(width=3, height = "150px",solidHeader = T,title="Sectors",status="primary",
+             #     selectInput("sec_v3", "Select Sectors:", choices=choice.sector_v3,  multiple=FALSE, selected="Education") ), 
+              # box to select Exte
               
-br(), # break
-
-# row with box to select sub sector and grah of sector                                 
-fluidRow(  
-# select sub sector
-       box(width=3, height = "150px",solidHeader = T,title="Sub-sector for education",status="primary",
-       selectInput("sub_sec", "Select sub-sector:",choices=choice.subsector, multiple=TRUE,selected="Basic")),
-# box to add graph              
-       splitLayout(box(plotlyOutput("plot1b"))) # close split layout
-), # close previous fuid row
-              
-br(), # break 
-
-# row with box to select crs and grah of sector
-fluidRow( 
-# box to select crs
-       box(width=3, height = "150px",solidHeader = T,title="CRS for education",status="primary",
-       selectInput("crs", "Select CRS purpose code:", choices=choice.crs, multiple=TRUE,selected="Primary edu")),
-# box for graph   
-      splitLayout(box(plotlyOutput("plot1c") ) ) # close slilt layout
-) # close previous fuid row
-
-), # closes tab item
-
-# Tab Two
-  tabItem(tabName="HMG", h1("ODA Spend by HMG"),
-          
-# row with slider to select years     
-fluidRow( 
-sliderInput(inputId = "yr2",label="Years to evaluate",   value=c(2009,2015), min=2000, max=2020, sep="") #close sliderInput
-), # close fluid row
-
-br(), # break 
-
-# row with boxes for sector, extending agencg and graph
-fluidRow( 
-# box to select sector and grah of sector
-      box(width=3, height = "150px",solidHeader = T,title="Sectors",status="primary",
-      selectInput("sec_v2", "Select Sectors:", choices=choice.sector_v2,  multiple=FALSE, selected="Education") ), 
-# box to select Extending Agency 
-      box(width=3, height = "150px",solidHeader = T,title="Extending Agency",status="primary",
-      selectInput("ExtAg", "Select HMG Department:",choices=choice.agency_s,  multiple=TRUE, selected="DFID") ) ,
-# box with graph
-      splitLayout( box(plotlyOutput("plot2a")) ) # close slilt layout
-), # close fluid row
-
-####add box for agency#######################################################################fix
-# row with box to select sub sector and grah of sub sector                
-fluidRow(  
-# box for sub sector
-      box(width=3, height = "150px",solidHeader = T,title="Sub-sector for education",status="primary",
-      selectInput("sub_sec_v2", "Select sub-sector:",choices=choice.subsector_v2, multiple=TRUE,selected="Basic")),
-# box with graph
-splitLayout( box(plotlyOutput("plot2b")) ) # close splitlayout
- ) # close previous fluid row
-
-
-   ) # closes tab item
-     ) # closes tabItems
-        ) # closes dashbaordBody
-           ) # closes header
+              splitLayout(box(plotlyOutput("plot3b"))) # close split layout
+            ), # close previous fuid row
+            
+            br(), # break 
+            
+            # row with box to select crs and grah of sector
+            fluidRow( 
+              # box for graph   
+              splitLayout(box(plotlyOutput("plot3c") ) ) # close slilt layout
+            ) # close previous fuid row
+            
+    ) # closes tab item
+    
+  ) # closes tabItems
+) # closes dashbaordBody
+) # closes header
 #)  
 
 # Define server logic for graphs
 
 server <- function(input, output) {
-
   
   
-################################################################################################################################
-#                                    education spend by DFID / other gov departments 
-################################################################################################################################
-# graph with DFID/ HMG
-
+  
+  ################################################################################################################################
+  #                                    oda spend for sector over time
+  ################################################################################################################################
+  # graph with DFID/ HMG
+  
   output$plot1a <-renderPlotly ({ 
-    
-    uk_spend  <- all_sid %>% 
-      mutate(sector=as.factor(sector)) %>% 
-      filter (sector %in% input$sec) %>% 
+
+    uk_spend  <- all_sid %>% # get data
+    # mutate(Sector=sector) %>% # make capslock for appearance
+      filter (sector %in% input$sec) %>% # filter on the basis of list in input$sec
       subset(Year>= input$yr1[1] & Year<=input$yr1[2])  
     
     graph_data <- uk_spend %>% 
       group_by(sector, Year) %>% 
-      summarise(oda_year=((sum(oda))/1000)) 
-    graph_data<-as.data.frame(graph_data) 
+      summarise(oda_year=((sum(oda)/1000)))  
+    
+    graph_data$oda_year<-round(graph_data$oda_year, 3) 
+    fct_explicit_na(graph_data$sector, na_level = "Missing")   
     
     # create the graph 
     uk_sec_spend_g<- ggplot(graph_data, aes(Year, oda_year)) + 
       geom_line(aes(color = sector)) +
       theme_minimal() +
-      labs(x = "Year", y = "ODA £M", title = "ODA by Sector over Time")
+      labs(x = "Year", y = "ODA £M",  title = "ODA £M by Sector over Time")
     
     plotly_build(uk_sec_spend_g)
   })
   
   
   ################################################################################################################################
-  #                                    education spend by DFID / other gov departments 
+  #                                    sector as % of ODA spend  
   ################################################################################################################################
-  # graph with all sectors - year
   
   output$plot1b <-renderPlotly ({ 
+    
+   # graph data
+    uk_spend  <- all_sid %>%  mutate(Sector=as.factor(sector)) %>% 
+      subset(Year>= input$yr1[1] & Year<=input$yr1[2])  %>% 
+      group_by(Year) %>% 
+      summarise(total_oda=((sum(oda)/1000)))  
+    
+    graph_data  <- all_sid %>%  mutate(Sector=as.factor(sector)) %>% 
+      filter (Sector %in% input$sec_v2) %>% 
+      subset(Year>= input$yr1[1] & Year<=input$yr1[2])  %>% 
+      group_by(Year, Sector) %>% 
+      summarise(oda_year=((sum(oda)/1000)))
+    
+    graph_data<-full_join(uk_spend, graph_data) %>% 
+      mutate(p_oda=((oda_year/total_oda)*100))
+    
+    graph_data$p_oda<-round(graph_data$p_oda, 0)
+    
+    
+    # create the graph 
+    sector_graph<- ggplot(graph_data, aes(x=Year, y=p_oda))  + 
+      geom_line(aes(color = Sector)) +
+      theme_minimal() +
+      labs(x = "Year", y = "% of Total Bilateral ODA", title = "Sector's % of Bilateral ODA") 
+    sector_graph
+    plotly_build(sector_graph) 
+  })
+  
+  
+  ################################################################################################################################
+  #                                    sub sector education spend
+  ################################################################################################################################
+ 
+  
+   # graph with all sectors - year
+  
+  output$plot1d <-renderPlotly ({ 
     
     graph_data  <- all_sid %>% 
       filter (sector %in% "Education") %>% 
@@ -374,7 +305,8 @@ server <- function(input, output) {
       subset(Year>= input$yr1[1] & Year<=input$yr1[2])  %>% 
       group_by(sub_sector, Year) %>% 
       summarise(oda_year=((sum(oda))/1000)) 
-    graph_data<-as.data.frame(graph_data) # %>% 
+    
+    graph_data$oda_year<-round(graph_data$oda_year, 3) 
     
     # create the graph 
     edu_spend_g<- ggplot(graph_data, aes(Year, oda_year)) + 
@@ -385,13 +317,179 @@ server <- function(input, output) {
     plotly_build(edu_spend_g)
   })
   
+output$plot1d <-renderPlotly ({ #
+  total_oda  <- all_sid %>%  mutate(Sector=as.factor(sector)) %>% 
+    subset(Year>= input$yr1[1] & Year<=input$yr1[2]) %>% 
+    filter (sector %in% "Education") %>% 
+    group_by(Sector, Year) %>% 
+    summarise(total_oda=((sum(oda))/1000)) 
+  
+  graph_data  <- all_sid %>%  mutate(Sector=as.factor(sector)) %>% 
+   subset(Year>= input$yr1[1] & Year<=input$yr1[2]) %>% 
+    filter (sector %in% "Education") %>% 
+    group_by(sub_sector, Year) %>% 
+    summarise(oda_year=((sum(oda))/1000)) 
+  
+  graph_data<-full_join(total_oda,graph_data) %>% 
+    mutate(p_oda=((oda_year/total_oda)*100))
+  
+  graph_data$p_oda<-round(graph_data$p_oda, 0)
+  
+  # create the graph 
+  sector_graph<- ggplot(graph_data, aes(x=Year, y=p_oda, fill=sub_sector, label =p_oda))  + 
+    geom_area() +
+    # scale_fill_brewer(palette="Dark2")+
+    theme_minimal() +
+    geom_text (check_overlap=TRUE, size=3,  position=position_stack(vjust = .5)) +
+    labs(x = "Year", y = "% of Sector ODA", title = "Sub-sector's % of Sector Bilateral ODA") 
+  sector_graph
+  })
+  
+  ################################################################################################################################
+  #                                   crs sector education spend by DFID / other gov departments 
+  ################################################################################################################################
+  # graph with all sectors - year
+  
+  output$plot1e <-renderPlotly ({ 
+    
+    graph_data  <- all_sid %>% 
+      filter (sector %in% "Education") %>% 
+      filter (crs %in% input$crs) %>% 
+      subset(Year>= input$yr1[1] & Year<=input$yr1[2])  %>% 
+      group_by(crs, Year) %>% 
+      summarise(oda_year=((sum(oda))/1000)) 
+    
+    graph_data$oda_year<-round(graph_data$oda_year, 3) 
+    
+    # create the graph 
+    edu_spend_g<- ggplot(graph_data, aes(Year, oda_year)) + 
+      geom_line(aes(color = crs)) +
+      theme_minimal()+
+      theme(legend.position="bottom") +
+      labs(x = "Year", y ="ODA £M", title = "Education ODA by CRS")
+    
+    plotly_build(edu_spend_g)
+  })
+  
+  ###############################################################################################################
+  output$plot2a <-renderPlotly ({ 
+    #
+    uk_spend  <- all_sid %>% 
+      filter (sector %in% input$sec_v2) %>% 
+      filter (dept %in% input$ExtAg) %>% 
+      subset(Year>= input$yr2[1] & Year<=input$yr2[2])  
+    
+    graph_data <- uk_spend %>% 
+      group_by(dept, Year) %>% 
+      summarise(oda_year=((sum(oda))/1000)) 
+    
+    graph_data$oda_year<-round(graph_data$oda_year, 3) 
+    
+    # create the graph 
+    uk_agency_spend_g<- ggplot(graph_data, aes(Year, oda_year)) + 
+      geom_line(aes(color = dept)) +
+      theme_minimal() +
+      labs(x = "Year", y = "ODA ÃÂÃÂ£M", title = "Education ODA by HMG Department over Time")
+    
+    plotly_build(uk_agency_spend_g)
+  })
+  output$plot2b <-renderPlotly ({ 
+    
+    graph_data  <- all_sid %>% 
+      #filter (sector %in% "Education") %>% 
+      filter (dept %in% input$ExtAg) %>% 
+      filter (sub_sector %in% input$sub_sec_v2) %>% 
+      subset(Year>= input$yr2[1] & Year<=input$yr2[2])  %>% 
+      group_by(sub_sector, Year) %>% 
+      summarise(oda_year=((sum(oda))/1000)) 
+    
+    graph_data$oda_year<-round(graph_data$oda_year, 3) 
+    
+    # create the graph 
+    edu_spend_g<- ggplot(graph_data, aes(Year, oda_year)) + 
+      geom_line(aes(color = sub_sector)) +
+      theme_minimal()+
+      theme(legend.position="bottom") +
+      labs(x = "Year", y = "ODA ÃÂÃÂ£M", title = "Education ODA by CRS")
+    
+    plotly_build(edu_spend_g)
+  })
+  
+  
+  #####################################################################################################
+ 
+  
+  
+  output$plot3a <-renderPlotly ({ 
+
+  
+  sector  <- all_sid %>% 
+    filter (year %in% input$yr3)
+  
+  graph_data <- sector %>% 
+    group_by(year, sector) %>% 
+    summarise(oda_year=((sum(oda))/1000)) 
+  
+  total_oda<- graph_data %>% summarise(total_oda=(sum(oda_year)))
+  
+  graph_data<-full_join(total_oda, graph_data) %>% 
+    mutate(p_oda=((oda_year/total_oda)*100))
+  
+  graph_data$p_oda<-round(graph_data$p_oda, 0)
+  
+  
+  # create the graph 
+  sector_graph<- ggplot(graph_data, aes(x=sector, y=p_oda, fill=sector))  + 
+    geom_bar(stat="identity") +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    coord_flip() +
+    labs(x = "Sector", y = "% of Total Bilateral ODA", title = "Bilateral ODA by Sector") 
+  sector_graph
+  plotly_build(sector_graph)
+})
+
+  
   
   ################################################################################################################################
   #                                    education spend by DFID / other gov departments 
   ################################################################################################################################
   # graph with all sectors - year
   
-  output$plot1c <-renderPlotly ({ 
+  output$plot3b <-renderPlotly ({ 
+    
+    sector  <- all_sid %>%      
+      filter (year %in% input$yr3) %>% 
+         filter(sector %in% input$sec_V3)
+    
+    graph_data <- sector %>% 
+      group_by(year, crs) %>% 
+      summarise(oda_year=((sum(oda))/1000)) 
+    
+    total_oda<- graph_data %>% summarise(total_oda=(sum(oda_year)))
+    
+    graph_data<-full_join(total_oda, graph_data) %>% 
+      mutate(p_oda=((oda_year/total_oda)*100))
+    
+    graph_data$p_oda<-round(graph_data$p_oda, 0)
+    
+    # create the graph 
+    sub_sector_graph<- ggplot(graph_data, aes(x=crs, y=p_oda, fill=crs))  + 
+      geom_bar(stat="identity") +
+      theme_minimal() +
+      theme(legend.position = "none") +
+      coord_flip() +
+      labs(x = "Sector", y = "% of Total Bilateral Education ODA", title = "Education Bilateral ODA by Sub-Sector")
+    sub_sector_graph
+    plotly_build(sub_sector_graph)
+  })
+  
+  ################################################################################################################################
+  #                                    education spend by DFID / other gov departments 
+  ################################################################################################################################
+  # graph with all sectors - year
+  
+  output$plot3c <-renderPlotly ({ 
     
     graph_data  <- all_sid %>% 
       filter (sector %in% "Education") %>% 
@@ -406,53 +504,13 @@ server <- function(input, output) {
       geom_line(aes(color = crs)) +
       theme_minimal()+
       theme(legend.position="bottom") +
-      labs(x = "Year", y = "ODA £M", title = "Education ODA by CRS")
+      labs(x = "Year", y = "ODA ÃÂÃÂ£M", title = "Education ODA by CRS")
     
     plotly_build(edu_spend_g)
   })
   
   ###############################################################################################################
-output$plot2a <-renderPlotly ({ 
-  #
-  uk_spend  <- all_sid %>% 
-    filter (sector %in% input$sec_v2) %>% 
-    filter (dept %in% input$ExtAg) %>% 
-    subset(Year>= input$yr2[1] & Year<=input$yr2[2])  
   
-  graph_data <- uk_spend %>% 
-    group_by(dept, Year) %>% 
-    summarise(oda_year=((sum(oda))/1000)) 
-  
-  graph_data<-as.data.frame(graph_data) 
-  
-  # create the graph 
-  uk_agency_spend_g<- ggplot(graph_data, aes(Year, oda_year)) + 
-    geom_line(aes(color = dept)) +
-    theme_minimal() +
-    labs(x = "Year", y = "ODA £M", title = "Education ODA by HMG Department over Time")
-  
-  plotly_build(uk_agency_spend_g)
-})
-output$plot2b <-renderPlotly ({ 
-  
-  graph_data  <- all_sid %>% 
-    #filter (sector %in% "Education") %>% 
-    filter (dept %in% input$ExtAg) %>% 
-    filter (sub_sector %in% input$sub_sec_v2) %>% 
-    subset(Year>= input$yr2[1] & Year<=input$yr2[2])  %>% 
-    group_by(sub_sector, Year) %>% 
-    summarise(oda_year=((sum(oda))/1000)) 
-  graph_data<-as.data.frame(graph_data) # %>% 
-  
-  # create the graph 
-  edu_spend_g<- ggplot(graph_data, aes(Year, oda_year)) + 
-    geom_line(aes(color = sub_sector)) +
-    theme_minimal()+
-    theme(legend.position="bottom") +
-    labs(x = "Year", y = "ODA £M", title = "Education ODA by CRS")
-  
-  plotly_build(edu_spend_g)
-})
   
 }
 
